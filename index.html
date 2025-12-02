@@ -82,12 +82,39 @@ const SolutionDisplay = ({ content, isDarkMode }) => {
 /* --- API KEY GUIDE COMPONENT --- */
 
 const ApiKeyGuide = ({ onClose, isDarkMode }) => {
+  // CONFIGURAZIONE IMMAGINI: Incolla qui i tuoi link RAW di GitHub
   const steps = [
-    { title: "1. Accesso a Google AI Studio", desc: "Vai su aistudio.google.com con il tuo account Google.", icon: <ExternalLink className="w-10 h-10 text-indigo-500" /> },
-    { title: "2. Ottieni Chiave", desc: "Clicca su 'Get API key' nel menu laterale.", icon: <Key className="w-10 h-10 text-indigo-500" /> },
-    { title: "3. Crea Chiave", desc: "Premi 'Create API key'.", icon: <Play className="w-10 h-10 text-indigo-500" /> },
-    { title: "4. Nuovo Progetto", desc: "Seleziona 'Create API key in new project'.", icon: <Settings className="w-10 h-10 text-indigo-500" /> },
-    { title: "5. Copia", desc: "Copia la stringa generata e incollala qui.", icon: <CheckCircle className="w-10 h-10 text-indigo-500" /> }
+    { 
+      title: "1. Accesso a Google AI Studio", 
+      desc: "Vai su aistudio.google.com con il tuo account Google.", 
+      icon: <ExternalLink className="w-10 h-10 text-indigo-500" />,
+      // Esempio: "https://raw.githubusercontent.com/Pietroes/MathGenius/main/img/step1.png"
+      img: "" 
+    },
+    { 
+      title: "2. Ottieni Chiave", 
+      desc: "Clicca su 'Get API key' nel menu laterale.", 
+      icon: <Key className="w-10 h-10 text-indigo-500" />,
+      img: "" 
+    },
+    { 
+      title: "3. Crea Chiave", 
+      desc: "Premi 'Create API key'.", 
+      icon: <Play className="w-10 h-10 text-indigo-500" />,
+      img: "" 
+    },
+    { 
+      title: "4. Nuovo Progetto", 
+      desc: "Seleziona 'Create API key in new project'.", 
+      icon: <Settings className="w-10 h-10 text-indigo-500" />,
+      img: "" 
+    },
+    { 
+      title: "5. Copia", 
+      desc: "Copia la stringa generata e incollala qui.", 
+      icon: <CheckCircle className="w-10 h-10 text-indigo-500" />,
+      img: "" 
+    }
   ];
 
   return (
@@ -102,13 +129,30 @@ const ApiKeyGuide = ({ onClose, isDarkMode }) => {
             <HelpCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <p><strong>Nota:</strong> L'uso è gratuito.</p>
           </div>
-          <div className="space-y-6">
+          <div className="space-y-10">
             {steps.map((step, idx) => (
               <div key={idx} className="flex gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isDarkMode ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-700'}`}>{idx + 1}</div>
-                <div>
-                  <h3 className="font-semibold">{step.title}</h3>
-                  <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{step.desc}</p>
+                <div className="flex-col items-center gap-2 hidden sm:flex">
+                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isDarkMode ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-700'}`}>{idx + 1}</div>
+                   {idx < steps.length - 1 && <div className="w-0.5 h-full bg-slate-200 dark:bg-slate-700 my-1"></div>}
+                </div>
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <h3 className="font-semibold">{step.title}</h3>
+                    <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{step.desc}</p>
+                  </div>
+                  
+                  {/* Image Display Logic */}
+                  <div className={`rounded-lg border-2 border-dashed overflow-hidden ${isDarkMode ? 'border-slate-700 bg-slate-800/50' : 'border-slate-200 bg-slate-50'}`}>
+                     {step.img ? (
+                       <img src={step.img} alt={step.title} className="w-full h-auto object-cover" loading="lazy" />
+                     ) : (
+                       <div className="aspect-video flex flex-col items-center justify-center opacity-50">
+                          {step.icon}
+                          <span className="text-xs mt-2">Immagine Passo {idx + 1}</span>
+                       </div>
+                     )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -196,7 +240,6 @@ const LiveTutorChat = ({ apiKey, contextSolution, isDarkMode, onClose }) => {
 /* --- MAIN APP --- */
 
 export default function App() {
-  // State Initialization with Direct Persistence
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('isDarkMode');
@@ -212,7 +255,6 @@ export default function App() {
     return '';
   });
   
-  // Persist preferences immediately on change
   useEffect(() => {
     localStorage.setItem('isDarkMode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
