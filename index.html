@@ -25,37 +25,22 @@
                         'shimmer': 'shimmer 2s linear infinite',
                     },
                     keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' },
-                        },
-                        slideUp: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        },
-                        slideInRight: {
-                            '0%': { opacity: '0', transform: 'translateX(100%)' },
-                            '100%': { opacity: '1', transform: 'translateX(0)' },
-                        },
-                        popIn: {
-                            '0%': { opacity: '0', transform: 'scale(0.9)' },
-                            '100%': { opacity: '1', transform: 'scale(1)' },
-                        },
-                        shimmer: {
-                            '0%': { backgroundPosition: '-1000px 0' },
-                            '100%': { backgroundPosition: '1000px 0' }
-                        }
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+                        slideInRight: { '0%': { opacity: '0', transform: 'translateX(100%)' }, '100%': { opacity: '1', transform: 'translateX(0)' } },
+                        popIn: { '0%': { opacity: '0', transform: 'scale(0.9)' }, '100%': { opacity: '1', transform: 'scale(1)' } },
+                        shimmer: { '0%': { backgroundPosition: '-1000px 0' }, '100%': { backgroundPosition: '1000px 0' } }
                     }
                 }
             }
         }
     </script>
 
-    <!-- 2. Librerie per Markdown e Matematica -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 2. Librerie di Formattazione (CDNJS - Più Stabile) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 
     <!-- 3. Babel per JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -92,13 +77,13 @@
         .dark ::-webkit-scrollbar-thumb { background: #475569; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* Animation Delays utility for cascading effects */
+        /* Animation Delays */
         .delay-100 { animation-delay: 100ms; }
         .delay-200 { animation-delay: 200ms; }
         .delay-300 { animation-delay: 300ms; }
         .delay-500 { animation-delay: 500ms; }
 
-        /* Shimmer Effect for Loading */
+        /* Shimmer Effect */
         .shimmer-bg {
             background: linear-gradient(to right, #f1f5f9 4%, #e2e8f0 25%, #f1f5f9 36%);
             background-size: 1000px 100%;
@@ -201,44 +186,81 @@
             );
         };
 
-        /* --- SOLUTION DISPLAY --- */
+        /* --- SOLUTION DISPLAY (Robusto con Fallback) --- */
         const SolutionDisplay = ({ content, isDarkMode }) => {
             const containerRef = useRef(null);
+            const [isReady, setIsReady] = useState(false);
+            const [hasError, setHasError] = useState(false);
+
+            // Check for libraries loop with Timeout
+            useEffect(() => {
+                const start = Date.now();
+                const checkLibraries = setInterval(() => {
+                    if (window.marked && window.renderMathInElement) {
+                        setIsReady(true);
+                        clearInterval(checkLibraries);
+                    } else if (Date.now() - start > 3000) {
+                        // Se dopo 3 secondi non carica, mostra comunque il contenuto
+                        console.warn("Librerie formattazione lente o mancanti, attivo fallback.");
+                        setHasError(true);
+                        setIsReady(true);
+                        clearInterval(checkLibraries);
+                    }
+                }, 100);
+                return () => clearInterval(checkLibraries);
+            }, []);
 
             useEffect(() => {
-                if (containerRef.current && window.marked && window.renderMathInElement) {
+                if (isReady && containerRef.current) {
                     const originalText = content || "";
                     
-                    const mathMap = [];
-                    const protectedText = originalText.replace(
-                        /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|(?<!\\)\$((?:\\.|[^$])*?)(?<!\\)\$)/g, 
-                        (match) => {
-                            const placeholder = `MATHPLACEHOLDER${mathMap.length}ENDMATH`;
-                            mathMap.push(match);
-                            return placeholder;
-                        }
-                    );
+                    if (hasError) {
+                        // Fallback: testo semplice
+                        containerRef.current.innerText = originalText;
+                        return;
+                    }
 
-                    let html = window.marked.parse(protectedText);
+                    try {
+                        // 1. Protezione formule LaTeX
+                        const mathMap = [];
+                        const protectedText = originalText.replace(
+                            /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|(?<!\\)\$((?:\\.|[^$])*?)(?<!\\)\$)/g, 
+                            (match) => {
+                                const placeholder = `MATHPLACEHOLDER${mathMap.length}ENDMATH`;
+                                mathMap.push(match);
+                                return placeholder;
+                            }
+                        );
 
-                    mathMap.forEach((math, i) => {
-                        html = html.replace(`MATHPLACEHOLDER${i}ENDMATH`, math);
-                    });
+                        // 2. Parsing Markdown -> HTML
+                        let html = window.marked.parse(protectedText);
 
-                    containerRef.current.innerHTML = html;
+                        // 3. Ripristino formule
+                        mathMap.forEach((math, i) => {
+                            html = html.replace(`MATHPLACEHOLDER${i}ENDMATH`, math);
+                        });
 
-                    window.renderMathInElement(containerRef.current, {
-                        delimiters: [
-                            {left: '$$', right: '$$', display: true},
-                            {left: '$', right: '$', display: false},
-                            {left: '\\(', right: '\\)', display: false},
-                            {left: '\\[', right: '\\]', display: true}
-                        ],
-                        throwOnError: false,
-                        errorColor: '#cc0000',
-                    });
+                        containerRef.current.innerHTML = html;
+
+                        // 4. Rendering KaTeX
+                        window.renderMathInElement(containerRef.current, {
+                            delimiters: [
+                                {left: '$$', right: '$$', display: true},
+                                {left: '$', right: '$', display: false},
+                                {left: '\\(', right: '\\)', display: false},
+                                {left: '\\[', right: '\\]', display: true}
+                            ],
+                            throwOnError: false,
+                            errorColor: '#cc0000',
+                        });
+                    } catch (e) {
+                        console.error("Rendering error:", e);
+                        containerRef.current.innerText = originalText; // Fallback su errore
+                    }
                 }
-            }, [content]);
+            }, [content, isReady, hasError]);
+
+            if (!isReady) return <div className="animate-pulse text-sm opacity-50">Caricamento formattazione...</div>;
 
             return (
                 <div 
@@ -420,8 +442,6 @@
                 const rect = canvas.parentElement.getBoundingClientRect();
                 canvas.width = rect.width * dpr;
                 canvas.height = 300 * dpr; 
-                canvas.style.width = `${rect.width}px`;
-                canvas.style.height = "300px";
                 
                 const ctx = canvas.getContext('2d');
                 ctx.scale(dpr, dpr);
